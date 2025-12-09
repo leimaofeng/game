@@ -1,0 +1,1278 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>围棋</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: #f0e6d3;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      overflow: hidden;
+    }
+    
+    #gameContainer {
+      width: 100%;
+      max-width: 500px;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+    
+    /* 顶部信息栏 */
+    #header {
+      background: linear-gradient(135deg, #DEB887 0%, #D2B48C 100%);
+      padding: 10px 15px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 2px solid #8B4513;
+      min-height: 60px;
+    }
+    
+    .player-info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .stone-indicator {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      box-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    }
+    
+    .stone-indicator.black {
+      background: radial-gradient(circle at 30% 30%, #4a4a4a, #1a1a1a);
+      border: 1px solid #000;
+    }
+    
+    .stone-indicator.white {
+      background: radial-gradient(circle at 30% 30%, #ffffff, #e0e0e0);
+      border: 1px solid #888;
+    }
+    
+    .stone-indicator.active {
+      box-shadow: 0 0 0 3px #e74c3c;
+    }
+    
+    .capture-count {
+      font-size: 13px;
+      color: #5D4037;
+    }
+    
+    #gameInfo {
+      text-align: center;
+    }
+    
+    #gameMode {
+      font-size: 14px;
+      color: #3E2723;
+      font-weight: bold;
+    }
+    
+    #turnInfo {
+      font-size: 12px;
+      color: #5D4037;
+    }
+    
+    /* 棋盘区域 */
+    #boardContainer {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 10px;
+      background: #f0e6d3;
+    }
+    
+    #board {
+      touch-action: none;
+      cursor: pointer;
+    }
+    
+    /* 底部操作栏 */
+    #footer {
+      background: linear-gradient(135deg, #DEB887 0%, #D2B48C 100%);
+      padding: 10px;
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      border-top: 2px solid #8B4513;
+    }
+    
+    .game-btn {
+      padding: 10px 16px;
+      font-size: 14px;
+      border: none;
+      border-radius: 6px;
+      background: #A0522D;
+      color: #FFFAF0;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+    
+    .game-btn:hover {
+      background: #8B4513;
+      transform: translateY(-1px);
+    }
+    
+    .game-btn:active {
+      transform: translateY(1px);
+    }
+    
+    /* 菜单界面 */
+    #menuScreen {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: #f0e6d3;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+    }
+    
+    #menuScreen h1 {
+      font-size: 48px;
+      color: #3E2723;
+      margin-bottom: 10px;
+      font-family: 'STKaiti', 'KaiTi', serif;
+      letter-spacing: 20px;
+    }
+    
+    #menuScreen .subtitle {
+      font-size: 16px;
+      color: #5D4037;
+      margin-bottom: 40px;
+    }
+    
+    .menu-btn {
+      width: 200px;
+      padding: 15px;
+      margin: 10px;
+      font-size: 18px;
+      border: none;
+      border-radius: 8px;
+      background: #A0522D;
+      color: #FFFAF0;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: 0 3px 6px rgba(0,0,0,0.2);
+    }
+    
+    .menu-btn:hover {
+      background: #8B4513;
+      transform: translateY(-2px);
+      box-shadow: 0 5px 10px rgba(0,0,0,0.3);
+    }
+    
+    /* AI选择界面 */
+    #aiSelectScreen {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: #f0e6d3;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+    }
+    
+    #aiSelectScreen h2 {
+      font-size: 28px;
+      color: #3E2723;
+      margin-bottom: 30px;
+    }
+    
+    .difficulty-group, .color-group {
+      display: flex;
+      gap: 15px;
+      margin: 15px 0;
+    }
+    
+    .difficulty-btn, .color-btn {
+      padding: 12px 25px;
+      font-size: 16px;
+      border: 2px solid #8B4513;
+      border-radius: 6px;
+      background: #DEB887;
+      color: #3E2723;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .difficulty-btn.selected, .color-btn.selected {
+      background: #8B4513;
+      color: #FFFAF0;
+    }
+    
+    .color-btn.black-btn {
+      background: #1a1a1a;
+      color: #fff;
+      border-color: #000;
+    }
+    
+    .color-btn.white-btn {
+      background: #f5f5f5;
+      color: #333;
+      border-color: #888;
+    }
+    
+    .color-btn.black-btn.selected {
+      box-shadow: 0 0 0 3px #e74c3c;
+    }
+    
+    .color-btn.white-btn.selected {
+      box-shadow: 0 0 0 3px #e74c3c;
+    }
+    
+    #startAIGame {
+      margin-top: 30px;
+      width: 180px;
+    }
+    
+    /* 对话框 */
+    .dialog-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.6);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 200;
+    }
+    
+    .dialog {
+      background: #FFFAF0;
+      border-radius: 12px;
+      padding: 25px;
+      width: 90%;
+      max-width: 320px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    }
+    
+    .dialog h3 {
+      text-align: center;
+      color: #3E2723;
+      margin-bottom: 20px;
+      font-size: 22px;
+    }
+    
+    .save-slot {
+      width: 100%;
+      padding: 12px;
+      margin: 8px 0;
+      border: 1px solid #8B4513;
+      border-radius: 6px;
+      background: #DEB887;
+      color: #3E2723;
+      cursor: pointer;
+      font-size: 14px;
+      text-align: left;
+    }
+    
+    .save-slot:hover {
+      background: #D2B48C;
+    }
+    
+    .save-slot.empty {
+      background: #e0e0e0;
+      color: #888;
+    }
+    
+    .dialog-close {
+      width: 100%;
+      margin-top: 15px;
+    }
+    
+    /* 游戏结束对话框 */
+    #gameOverDialog .result {
+      text-align: center;
+      margin: 20px 0;
+    }
+    
+    #gameOverDialog .winner {
+      font-size: 28px;
+      font-weight: bold;
+      margin-bottom: 15px;
+    }
+    
+    #gameOverDialog .score-detail {
+      font-size: 14px;
+      color: #5D4037;
+      line-height: 1.8;
+    }
+    
+    #gameOverDialog .dialog-buttons {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+    }
+    
+    #gameOverDialog .dialog-buttons button {
+      flex: 1;
+    }
+    
+    /* Toast提示 */
+    #toast {
+      position: absolute;
+      bottom: 100px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.75);
+      color: #fff;
+      padding: 10px 25px;
+      border-radius: 20px;
+      font-size: 14px;
+      opacity: 0;
+      transition: opacity 0.3s;
+      z-index: 300;
+      pointer-events: none;
+    }
+    
+    #toast.show {
+      opacity: 1;
+    }
+    
+    /* 隐藏类 */
+    .hidden {
+      display: none !important;
+    }
+  </style>
+</head>
+<body>
+  <div id="gameContainer">
+    <!-- 菜单界面 -->
+    <div id="menuScreen">
+      <h1>围 棋</h1>
+      <p class="subtitle">传承千年的智慧博弈</p>
+      <button class="menu-btn" id="btnPvP">双人对弈</button>
+      <button class="menu-btn" id="btnPvE">人机对战</button>
+      <button class="menu-btn" id="btnLoad">载入存档</button>
+    </div>
+    
+    <!-- AI选择界面 -->
+    <div id="aiSelectScreen">
+      <h2>人机对战设置</h2>
+      <p style="color: #5D4037; margin-bottom: 10px;">选择难度</p>
+      <div class="difficulty-group">
+        <button class="difficulty-btn" data-level="easy">简单</button>
+        <button class="difficulty-btn selected" data-level="medium">中等</button>
+        <button class="difficulty-btn" data-level="hard">困难</button>
+      </div>
+      <p style="color: #5D4037; margin: 20px 0 10px;">选择执子</p>
+      <div class="color-group">
+        <button class="color-btn black-btn selected" data-color="black">执黑先行</button>
+        <button class="color-btn white-btn" data-color="white">执白后手</button>
+      </div>
+      <button class="menu-btn" id="startAIGame">开始游戏</button>
+      <button class="menu-btn" id="backToMenu" style="background: #888;">返回</button>
+    </div>
+    
+    <!-- 游戏界面 -->
+    <div id="header" class="hidden">
+      <div class="player-info">
+        <div class="stone-indicator black" id="blackIndicator"></div>
+        <span class="capture-count">提子: <span id="whiteCaptured">0</span></span>
+      </div>
+      <div id="gameInfo">
+        <div id="gameMode">双人对弈</div>
+        <div id="turnInfo">黑方落子</div>
+      </div>
+      <div class="player-info">
+        <span class="capture-count">提子: <span id="blackCaptured">0</span></span>
+        <div class="stone-indicator white" id="whiteIndicator"></div>
+      </div>
+    </div>
+    
+    <div id="boardContainer" class="hidden">
+      <canvas id="board"></canvas>
+    </div>
+    
+    <div id="footer" class="hidden">
+      <button class="game-btn" id="btnUndo">悔棋</button>
+      <button class="game-btn" id="btnPass">停一手</button>
+      <button class="game-btn" id="btnSave">保存</button>
+      <button class="game-btn" id="btnResign">认输</button>
+      <button class="game-btn" id="btnMenu">菜单</button>
+    </div>
+    
+    <!-- 存档对话框 -->
+    <div class="dialog-overlay" id="saveDialog">
+      <div class="dialog">
+        <h3 id="saveDialogTitle">保存游戏</h3>
+        <div id="saveSlots"></div>
+        <button class="game-btn dialog-close" id="closeSaveDialog">关闭</button>
+      </div>
+    </div>
+    
+    <!-- 游戏结束对话框 -->
+    <div class="dialog-overlay" id="gameOverDialog">
+      <div class="dialog">
+        <h3>对局结束</h3>
+        <div class="result">
+          <div class="winner" id="winnerText"></div>
+          <div class="score-detail" id="scoreDetail"></div>
+        </div>
+        <div class="dialog-buttons">
+          <button class="game-btn" id="btnNewGame">再来一局</button>
+          <button class="game-btn" id="btnBackMenu">返回菜单</button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Toast提示 -->
+    <div id="toast"></div>
+  </div>
+
+  <script>
+    // ==================== 围棋规则引擎 ====================
+    const EMPTY = 0, BLACK = 1, WHITE = 2, BOARD_SIZE = 19;
+    
+    class GoRules {
+      constructor(size = BOARD_SIZE) {
+        this.size = size;
+        this.init();
+      }
+      
+      init() {
+        this.board = Array(this.size).fill(null).map(() => Array(this.size).fill(EMPTY));
+        this.currentPlayer = BLACK;
+        this.capturedBlack = 0;
+        this.capturedWhite = 0;
+        this.lastMove = null;
+        this.koPoint = null;
+        this.moveHistory = [];
+        this.boardHistory = [];
+        this.saveBoardState();
+      }
+      
+      saveBoardState() {
+        this.boardHistory.push({
+          board: this.board.map(row => [...row]),
+          currentPlayer: this.currentPlayer,
+          capturedBlack: this.capturedBlack,
+          capturedWhite: this.capturedWhite,
+          koPoint: this.koPoint ? {...this.koPoint} : null,
+          lastMove: this.lastMove ? {...this.lastMove} : null
+        });
+      }
+      
+      getOpponent(player) { return player === BLACK ? WHITE : BLACK; }
+      isOnBoard(x, y) { return x >= 0 && x < this.size && y >= 0 && y < this.size; }
+      
+      getNeighbors(x, y) {
+        const neighbors = [];
+        const dirs = [[-1,0],[1,0],[0,-1],[0,1]];
+        for (const [dx, dy] of dirs) {
+          const nx = x + dx, ny = y + dy;
+          if (this.isOnBoard(nx, ny)) neighbors.push({x: nx, y: ny});
+        }
+        return neighbors;
+      }
+      
+      getGroup(x, y) {
+        const color = this.board[x][y];
+        if (color === EMPTY) return { stones: [], liberties: new Set() };
+        
+        const stones = [], liberties = new Set(), visited = new Set();
+        const queue = [{x, y}];
+        visited.add(`${x},${y}`);
+        
+        while (queue.length > 0) {
+          const current = queue.shift();
+          stones.push(current);
+          
+          for (const n of this.getNeighbors(current.x, current.y)) {
+            const key = `${n.x},${n.y}`;
+            const nColor = this.board[n.x][n.y];
+            if (nColor === EMPTY) liberties.add(key);
+            else if (nColor === color && !visited.has(key)) {
+              visited.add(key);
+              queue.push(n);
+            }
+          }
+        }
+        return { stones, liberties };
+      }
+      
+      removeGroup(stones) {
+        const color = this.board[stones[0].x][stones[0].y];
+        for (const s of stones) this.board[s.x][s.y] = EMPTY;
+        if (color === BLACK) this.capturedBlack += stones.length;
+        else this.capturedWhite += stones.length;
+        return stones.length;
+      }
+      
+      getCapturedStones(x, y, player) {
+        const opponent = this.getOpponent(player);
+        const captured = [];
+        for (const n of this.getNeighbors(x, y)) {
+          if (this.board[n.x][n.y] === opponent) {
+            const group = this.getGroup(n.x, n.y);
+            if (group.liberties.size === 0) captured.push(...group.stones);
+          }
+        }
+        return captured;
+      }
+      
+      isValidMove(x, y, player = this.currentPlayer) {
+        if (!this.isOnBoard(x, y)) return { valid: false, reason: '超出棋盘' };
+        if (this.board[x][y] !== EMPTY) return { valid: false, reason: '已有棋子' };
+        if (this.koPoint && this.koPoint.x === x && this.koPoint.y === y) 
+          return { valid: false, reason: '打劫禁入' };
+        
+        this.board[x][y] = player;
+        const captured = this.getCapturedStones(x, y, player);
+        
+        if (captured.length > 0) {
+          this.board[x][y] = EMPTY;
+          return { valid: true, captured };
+        }
+        
+        const group = this.getGroup(x, y);
+        if (group.liberties.size === 0) {
+          this.board[x][y] = EMPTY;
+          return { valid: false, reason: '禁止自杀' };
+        }
+        
+        this.board[x][y] = EMPTY;
+        return { valid: true, captured: [] };
+      }
+      
+      makeMove(x, y, player = this.currentPlayer) {
+        const validation = this.isValidMove(x, y, player);
+        if (!validation.valid) return { success: false, reason: validation.reason };
+        
+        this.board[x][y] = player;
+        const captured = this.getCapturedStones(x, y, player);
+        let capturedCount = 0;
+        if (captured.length > 0) capturedCount = this.removeGroup(captured);
+        
+        this.koPoint = null;
+        if (capturedCount === 1) {
+          const myGroup = this.getGroup(x, y);
+          if (myGroup.stones.length === 1 && myGroup.liberties.size === 1) {
+            const [koX, koY] = Array.from(myGroup.liberties)[0].split(',').map(Number);
+            this.koPoint = { x: koX, y: koY };
+          }
+        }
+        
+        this.lastMove = { x, y, player };
+        this.moveHistory.push({ x, y, player, captured: capturedCount });
+        this.currentPlayer = this.getOpponent(player);
+        this.saveBoardState();
+        
+        return { success: true, captured: capturedCount };
+      }
+      
+      undoMove() {
+        if (this.boardHistory.length <= 1) return { success: false, reason: '无法悔棋' };
+        this.boardHistory.pop();
+        this.moveHistory.pop();
+        const prev = this.boardHistory[this.boardHistory.length - 1];
+        this.board = prev.board.map(row => [...row]);
+        this.currentPlayer = prev.currentPlayer;
+        this.capturedBlack = prev.capturedBlack;
+        this.capturedWhite = prev.capturedWhite;
+        this.koPoint = prev.koPoint ? {...prev.koPoint} : null;
+        this.lastMove = prev.lastMove ? {...prev.lastMove} : null;
+        return { success: true };
+      }
+      
+      pass() {
+        this.moveHistory.push({ x: -1, y: -1, player: this.currentPlayer, isPass: true });
+        this.currentPlayer = this.getOpponent(this.currentPlayer);
+        this.koPoint = null;
+        this.saveBoardState();
+        
+        const h = this.moveHistory;
+        if (h.length >= 2 && h[h.length-1].isPass && h[h.length-2].isPass) {
+          return { success: true, gameEnd: true };
+        }
+        return { success: true, gameEnd: false };
+      }
+      
+      calculateScore() {
+        const territory = { black: 0, white: 0 };
+        const visited = new Set();
+        
+        for (let x = 0; x < this.size; x++) {
+          for (let y = 0; y < this.size; y++) {
+            if (this.board[x][y] !== EMPTY || visited.has(`${x},${y}`)) continue;
+            
+            const region = [], queue = [{x, y}];
+            let touchesBlack = false, touchesWhite = false;
+            visited.add(`${x},${y}`);
+            
+            while (queue.length > 0) {
+              const curr = queue.shift();
+              region.push(curr);
+              for (const n of this.getNeighbors(curr.x, curr.y)) {
+                const key = `${n.x},${n.y}`;
+                const color = this.board[n.x][n.y];
+                if (color === BLACK) touchesBlack = true;
+                else if (color === WHITE) touchesWhite = true;
+                else if (!visited.has(key)) { visited.add(key); queue.push(n); }
+              }
+            }
+            
+            if (touchesBlack && !touchesWhite) territory.black += region.length;
+            else if (touchesWhite && !touchesBlack) territory.white += region.length;
+          }
+        }
+        
+        let blackStones = 0, whiteStones = 0;
+        for (let x = 0; x < this.size; x++) {
+          for (let y = 0; y < this.size; y++) {
+            if (this.board[x][y] === BLACK) blackStones++;
+            else if (this.board[x][y] === WHITE) whiteStones++;
+          }
+        }
+        
+        const blackScore = blackStones + territory.black;
+        const whiteScore = whiteStones + territory.white + 7.5;
+        
+        return {
+          black: blackScore, white: whiteScore,
+          winner: blackScore > whiteScore ? BLACK : WHITE,
+          margin: Math.abs(blackScore - whiteScore)
+        };
+      }
+      
+      getAllValidMoves(player = this.currentPlayer) {
+        const moves = [];
+        for (let x = 0; x < this.size; x++) {
+          for (let y = 0; y < this.size; y++) {
+            if (this.isValidMove(x, y, player).valid) moves.push({x, y});
+          }
+        }
+        return moves;
+      }
+    }
+    
+    // ==================== AI模块 ====================
+    class GoAI {
+      constructor(rules, level = 'medium') {
+        this.rules = rules;
+        this.level = level;
+        this.size = rules.size;
+      }
+      
+      getMove(color) {
+        const validMoves = this.rules.getAllValidMoves(color);
+        if (validMoves.length === 0) return null;
+        
+        let bestMove = null, bestScore = -Infinity;
+        
+        for (const move of validMoves) {
+          const score = this.evaluateMove(move.x, move.y, color);
+          if (score > bestScore) { bestScore = score; bestMove = move; }
+        }
+        
+        // 添加随机性
+        if (this.level === 'easy' && Math.random() < 0.4) {
+          return validMoves[Math.floor(Math.random() * validMoves.length)];
+        }
+        
+        return bestMove || validMoves[0];
+      }
+      
+      evaluateMove(x, y, color) {
+        let score = 0;
+        const opponent = color === BLACK ? WHITE : BLACK;
+        const originalBoard = this.rules.board.map(row => [...row]);
+        
+        this.rules.board[x][y] = color;
+        
+        // 提子分数
+        const captured = this.rules.getCapturedStones(x, y, color);
+        score += captured.length * 15;
+        
+        // 位置分数
+        const distFromEdge = Math.min(x, y, this.size-1-x, this.size-1-y);
+        if (distFromEdge <= 3) score += 5;
+        
+        // 连接分数
+        for (const n of this.rules.getNeighbors(x, y)) {
+          if (this.rules.board[n.x][n.y] === color) score += 3;
+        }
+        
+        // 威胁分数
+        for (const n of this.rules.getNeighbors(x, y)) {
+          if (originalBoard[n.x][n.y] === opponent) {
+            const group = this.rules.getGroup(n.x, n.y);
+            if (group.liberties.size <= 2) score += (3 - group.liberties.size) * 8;
+          }
+        }
+        
+        // 防守分数
+        for (const n of this.rules.getNeighbors(x, y)) {
+          if (originalBoard[n.x][n.y] === color) {
+            const group = this.rules.getGroup(n.x, n.y);
+            if (group.liberties.size <= 2) score += (3 - group.liberties.size) * 10;
+          }
+        }
+        
+        // 困难模式加强
+        if (this.level === 'hard') {
+          score += Math.random() * 2;
+        }
+        
+        this.rules.board = originalBoard;
+        return score;
+      }
+    }
+    
+    // ==================== 棋盘渲染 ====================
+    class BoardRenderer {
+      constructor(canvas, size = BOARD_SIZE) {
+        this.canvas = canvas;
+        this.ctx = canvas.getContext('2d');
+        this.size = size;
+        this.starPoints = [[3,3],[3,9],[3,15],[9,3],[9,9],[9,15],[15,3],[15,9],[15,15]];
+      }
+      
+      resize(containerWidth, containerHeight) {
+        const padding = 20;
+        const boardPixels = Math.min(containerWidth, containerHeight) - padding * 2;
+        
+        this.canvas.width = boardPixels + padding * 2;
+        this.canvas.height = boardPixels + padding * 2;
+        this.boardSize = boardPixels;
+        this.cellSize = boardPixels / (this.size - 1);
+        this.stoneRadius = this.cellSize * 0.45;
+        this.offsetX = padding;
+        this.offsetY = padding;
+      }
+      
+      boardToCanvas(x, y) {
+        return { x: this.offsetX + x * this.cellSize, y: this.offsetY + y * this.cellSize };
+      }
+      
+      canvasToBoard(canvasX, canvasY) {
+        const rect = this.canvas.getBoundingClientRect();
+        const x = Math.round((canvasX - rect.left - this.offsetX) / this.cellSize);
+        const y = Math.round((canvasY - rect.top - this.offsetY) / this.cellSize);
+        if (x >= 0 && x < this.size && y >= 0 && y < this.size) return { x, y, valid: true };
+        return { x: -1, y: -1, valid: false };
+      }
+      
+      render(board, lastMove, previewPos = null, previewColor = BLACK) {
+        const ctx = this.ctx;
+        
+        // 背景
+        ctx.fillStyle = '#DEB887';
+        ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        
+        // 木纹
+        ctx.strokeStyle = 'rgba(139, 90, 43, 0.08)';
+        ctx.lineWidth = 1;
+        for (let i = 0; i < 30; i++) {
+          ctx.beginPath();
+          ctx.moveTo(0, i * 15);
+          ctx.lineTo(this.canvas.width, i * 15);
+          ctx.stroke();
+        }
+        
+        // 网格
+        ctx.strokeStyle = '#5D4037';
+        ctx.lineWidth = 1;
+        for (let i = 0; i < this.size; i++) {
+          const p = this.boardToCanvas(i, 0);
+          ctx.beginPath();
+          ctx.moveTo(p.x, this.offsetY);
+          ctx.lineTo(p.x, this.offsetY + this.boardSize);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(this.offsetX, p.x);
+          ctx.lineTo(this.offsetX + this.boardSize, p.x);
+          ctx.stroke();
+        }
+        
+        // 星位
+        ctx.fillStyle = '#5D4037';
+        for (const [sx, sy] of this.starPoints) {
+          if (sx < this.size && sy < this.size) {
+            const p = this.boardToCanvas(sx, sy);
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, this.cellSize * 0.12, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+        
+        // 棋子
+        for (let x = 0; x < this.size; x++) {
+          for (let y = 0; y < this.size; y++) {
+            if (board[x][y] !== EMPTY) {
+              const isLast = lastMove && lastMove.x === x && lastMove.y === y;
+              this.drawStone(x, y, board[x][y], isLast);
+            }
+          }
+        }
+        
+        // 预览
+        if (previewPos && previewPos.valid && board[previewPos.x][previewPos.y] === EMPTY) {
+          const p = this.boardToCanvas(previewPos.x, previewPos.y);
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, this.stoneRadius, 0, Math.PI * 2);
+          ctx.fillStyle = previewColor === BLACK ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.6)';
+          ctx.fill();
+        }
+      }
+      
+      drawStone(x, y, color, isLast) {
+        const ctx = this.ctx;
+        const p = this.boardToCanvas(x, y);
+        const r = this.stoneRadius;
+        
+        // 阴影
+        ctx.beginPath();
+        ctx.arc(p.x + 2, p.y + 2, r, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(0,0,0,0.25)';
+        ctx.fill();
+        
+        // 棋子
+        const grad = ctx.createRadialGradient(p.x - r*0.3, p.y - r*0.3, r*0.1, p.x, p.y, r);
+        if (color === BLACK) {
+          grad.addColorStop(0, '#4a4a4a');
+          grad.addColorStop(1, '#1a1a1a');
+        } else {
+          grad.addColorStop(0, '#ffffff');
+          grad.addColorStop(1, '#e8e8e8');
+        }
+        
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
+        ctx.fillStyle = grad;
+        ctx.fill();
+        ctx.strokeStyle = color === BLACK ? '#000' : '#999';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        
+        // 最后落子标记
+        if (isLast) {
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, r * 0.25, 0, Math.PI * 2);
+          ctx.fillStyle = color === BLACK ? '#fff' : '#000';
+          ctx.fill();
+        }
+      }
+    }
+    
+    // ==================== 游戏主逻辑 ====================
+    class WeiqiGame {
+      constructor() {
+        this.rules = new GoRules(BOARD_SIZE);
+        this.canvas = document.getElementById('board');
+        this.board = new BoardRenderer(this.canvas, BOARD_SIZE);
+        this.ai = null;
+        
+        this.gameMode = 'pvp';
+        this.aiLevel = 'medium';
+        this.playerColor = BLACK;
+        this.aiColor = WHITE;
+        this.previewPos = null;
+        
+        this.saves = JSON.parse(localStorage.getItem('weiqi_saves') || '[]');
+        
+        this.initUI();
+        this.bindEvents();
+      }
+      
+      initUI() {
+        this.menuScreen = document.getElementById('menuScreen');
+        this.aiSelectScreen = document.getElementById('aiSelectScreen');
+        this.header = document.getElementById('header');
+        this.boardContainer = document.getElementById('boardContainer');
+        this.footer = document.getElementById('footer');
+        this.saveDialog = document.getElementById('saveDialog');
+        this.gameOverDialog = document.getElementById('gameOverDialog');
+        this.toast = document.getElementById('toast');
+      }
+      
+      bindEvents() {
+        // 菜单按钮
+        document.getElementById('btnPvP').onclick = () => this.startGame('pvp');
+        document.getElementById('btnPvE').onclick = () => this.showAISelect();
+        document.getElementById('btnLoad').onclick = () => this.showLoadDialog();
+        
+        // AI选择
+        document.querySelectorAll('.difficulty-btn').forEach(btn => {
+          btn.onclick = () => {
+            document.querySelectorAll('.difficulty-btn').forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+            this.aiLevel = btn.dataset.level;
+          };
+        });
+        
+        document.querySelectorAll('.color-btn').forEach(btn => {
+          btn.onclick = () => {
+            document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+            this.playerColor = btn.dataset.color === 'black' ? BLACK : WHITE;
+            this.aiColor = this.playerColor === BLACK ? WHITE : BLACK;
+          };
+        });
+        
+        document.getElementById('startAIGame').onclick = () => this.startGame('pve');
+        document.getElementById('backToMenu').onclick = () => this.showMenu();
+        
+        // 游戏按钮
+        document.getElementById('btnUndo').onclick = () => this.undoMove();
+        document.getElementById('btnPass').onclick = () => this.pass();
+        document.getElementById('btnSave').onclick = () => this.showSaveDialog();
+        document.getElementById('btnResign').onclick = () => this.resign();
+        document.getElementById('btnMenu').onclick = () => this.showMenu();
+        
+        // 对话框
+        document.getElementById('closeSaveDialog').onclick = () => this.hideDialogs();
+        document.getElementById('btnNewGame').onclick = () => {
+          this.hideDialogs();
+          this.startGame(this.gameMode);
+        };
+        document.getElementById('btnBackMenu').onclick = () => {
+          this.hideDialogs();
+          this.showMenu();
+        };
+        
+        // 棋盘事件
+        this.canvas.addEventListener('click', (e) => this.handleBoardClick(e));
+        this.canvas.addEventListener('mousemove', (e) => this.handleBoardMove(e));
+        this.canvas.addEventListener('mouseleave', () => {
+          this.previewPos = null;
+          this.render();
+        });
+        
+        // 触摸事件
+        this.canvas.addEventListener('touchend', (e) => {
+          e.preventDefault();
+          const touch = e.changedTouches[0];
+          this.handleBoardClick({ clientX: touch.clientX, clientY: touch.clientY });
+        });
+        
+        // 窗口大小变化
+        window.addEventListener('resize', () => this.resizeBoard());
+      }
+      
+      showMenu() {
+        this.menuScreen.classList.remove('hidden');
+        this.aiSelectScreen.style.display = 'none';
+        this.header.classList.add('hidden');
+        this.boardContainer.classList.add('hidden');
+        this.footer.classList.add('hidden');
+        this.hideDialogs();
+      }
+      
+      showAISelect() {
+        this.menuScreen.classList.add('hidden');
+        this.aiSelectScreen.style.display = 'flex';
+      }
+      
+      startGame(mode) {
+        this.gameMode = mode;
+        this.rules.init();
+        
+        if (mode === 'pve') {
+          this.ai = new GoAI(this.rules, this.aiLevel);
+        }
+        
+        this.menuScreen.classList.add('hidden');
+        this.aiSelectScreen.style.display = 'none';
+        this.header.classList.remove('hidden');
+        this.boardContainer.classList.remove('hidden');
+        this.footer.classList.remove('hidden');
+        
+        document.getElementById('gameMode').textContent = mode === 'pvp' ? '双人对弈' : '人机对战';
+        
+        this.resizeBoard();
+        this.updateUI();
+        
+        // AI先手
+        if (mode === 'pve' && this.playerColor === WHITE) {
+          setTimeout(() => this.makeAIMove(), 500);
+        }
+      }
+      
+      resizeBoard() {
+        const container = this.boardContainer;
+        const w = container.clientWidth;
+        const h = container.clientHeight;
+        this.board.resize(w, h);
+        this.render();
+      }
+      
+      handleBoardClick(e) {
+        const pos = this.board.canvasToBoard(e.clientX, e.clientY);
+        if (!pos.valid) return;
+        
+        if (this.gameMode === 'pve' && this.rules.currentPlayer !== this.playerColor) {
+          this.showToast('请等待AI落子');
+          return;
+        }
+        
+        const result = this.rules.makeMove(pos.x, pos.y);
+        if (result.success) {
+          this.updateUI();
+          this.autoSave();
+          
+          if (this.gameMode === 'pve' && this.rules.currentPlayer === this.aiColor) {
+            setTimeout(() => this.makeAIMove(), 400);
+          }
+        } else {
+          this.showToast(result.reason);
+        }
+      }
+      
+      handleBoardMove(e) {
+        const pos = this.board.canvasToBoard(e.clientX, e.clientY);
+        if (pos.valid && this.rules.board[pos.x][pos.y] === EMPTY) {
+          this.previewPos = pos;
+        } else {
+          this.previewPos = null;
+        }
+        this.render();
+      }
+      
+      makeAIMove() {
+        if (this.rules.currentPlayer !== this.aiColor) return;
+        
+        const move = this.ai.getMove(this.aiColor);
+        if (move) {
+          this.rules.makeMove(move.x, move.y);
+          this.updateUI();
+          this.autoSave();
+        } else {
+          this.rules.pass();
+          this.showToast('AI停一手');
+          this.updateUI();
+        }
+      }
+      
+      undoMove() {
+        if (this.gameMode === 'pve') {
+          this.rules.undoMove();
+          this.rules.undoMove();
+        } else {
+          const result = this.rules.undoMove();
+          if (!result.success) {
+            this.showToast(result.reason);
+            return;
+          }
+        }
+        this.updateUI();
+      }
+      
+      pass() {
+        const result = this.rules.pass();
+        this.showToast('停一手');
+        this.updateUI();
+        
+        if (result.gameEnd) {
+          this.endGame();
+        } else if (this.gameMode === 'pve') {
+          setTimeout(() => this.makeAIMove(), 400);
+        }
+      }
+      
+      resign() {
+        const winner = this.rules.currentPlayer === BLACK ? WHITE : BLACK;
+        this.showGameOver({ winner, black: 0, white: 0, margin: 0, resigned: true });
+      }
+      
+      endGame() {
+        const result = this.rules.calculateScore();
+        this.showGameOver(result);
+      }
+      
+      showGameOver(result) {
+        const winnerText = result.resigned 
+          ? (result.winner === BLACK ? '黑方胜（白方认输）' : '白方胜（黑方认输）')
+          : (result.winner === BLACK ? '黑方胜' : '白方胜');
+        
+        document.getElementById('winnerText').textContent = winnerText;
+        document.getElementById('winnerText').style.color = result.winner === BLACK ? '#1a1a1a' : '#666';
+        
+        if (!result.resigned) {
+          document.getElementById('scoreDetail').innerHTML = 
+            `黑方: ${result.black.toFixed(1)} 目<br>白方: ${result.white.toFixed(1)} 目<br>胜 ${result.margin.toFixed(1)} 目`;
+        } else {
+          document.getElementById('scoreDetail').textContent = '';
+        }
+        
+        this.gameOverDialog.style.display = 'flex';
+      }
+      
+      showSaveDialog() {
+        document.getElementById('saveDialogTitle').textContent = '保存游戏';
+        this.renderSaveSlots('save');
+        this.saveDialog.style.display = 'flex';
+      }
+      
+      showLoadDialog() {
+        document.getElementById('saveDialogTitle').textContent = '载入存档';
+        this.renderSaveSlots('load');
+        this.saveDialog.style.display = 'flex';
+      }
+      
+      renderSaveSlots(mode) {
+        const container = document.getElementById('saveSlots');
+        container.innerHTML = '';
+        
+        for (let i = 0; i < 5; i++) {
+          const save = this.saves[i];
+          const btn = document.createElement('button');
+          btn.className = 'save-slot' + (save ? '' : ' empty');
+          btn.textContent = save 
+            ? `${save.timestamp} (${save.moveCount}手)` 
+            : `存档位 ${i + 1} (空)`;
+          
+          btn.onclick = () => {
+            if (mode === 'save') {
+              this.saveGame(i);
+            } else if (save) {
+              this.loadGame(i);
+            }
+          };
+          
+          container.appendChild(btn);
+        }
+      }
+      
+      saveGame(slot) {
+        const state = {
+          timestamp: new Date().toLocaleString('zh-CN'),
+          moveCount: this.rules.moveHistory.length,
+          gameMode: this.gameMode,
+          board: this.rules.board,
+          currentPlayer: this.rules.currentPlayer,
+          capturedBlack: this.rules.capturedBlack,
+          capturedWhite: this.rules.capturedWhite,
+          moveHistory: this.rules.moveHistory,
+          boardHistory: this.rules.boardHistory,
+          lastMove: this.rules.lastMove,
+          koPoint: this.rules.koPoint,
+          aiLevel: this.aiLevel,
+          playerColor: this.playerColor,
+          aiColor: this.aiColor
+        };
+        
+        this.saves[slot] = state;
+        localStorage.setItem('weiqi_saves', JSON.stringify(this.saves));
+        this.showToast('保存成功');
+        this.hideDialogs();
+      }
+      
+      loadGame(slot) {
+        const save = this.saves[slot];
+        if (!save) return;
+        
+        this.gameMode = save.gameMode;
+        this.aiLevel = save.aiLevel || 'medium';
+        this.playerColor = save.playerColor || BLACK;
+        this.aiColor = save.aiColor || WHITE;
+        
+        this.rules.board = save.board.map(row => [...row]);
+        this.rules.currentPlayer = save.currentPlayer;
+        this.rules.capturedBlack = save.capturedBlack;
+        this.rules.capturedWhite = save.capturedWhite;
+        this.rules.moveHistory = save.moveHistory || [];
+        this.rules.boardHistory = save.boardHistory || [];
+        this.rules.lastMove = save.lastMove;
+        this.rules.koPoint = save.koPoint;
+        
+        if (this.gameMode === 'pve') {
+          this.ai = new GoAI(this.rules, this.aiLevel);
+        }
+        
+        this.menuScreen.classList.add('hidden');
+        this.header.classList.remove('hidden');
+        this.boardContainer.classList.remove('hidden');
+        this.footer.classList.remove('hidden');
+        
+        document.getElementById('gameMode').textContent = this.gameMode === 'pvp' ? '双人对弈' : '人机对战';
+        
+        this.hideDialogs();
+        this.resizeBoard();
+        this.updateUI();
+        this.showToast('载入成功');
+      }
+      
+      autoSave() {
+        localStorage.setItem('weiqi_autosave', JSON.stringify({
+          gameMode: this.gameMode,
+          board: this.rules.board,
+          currentPlayer: this.rules.currentPlayer,
+          capturedBlack: this.rules.capturedBlack,
+          capturedWhite: this.rules.capturedWhite,
+          moveHistory: this.rules.moveHistory,
+          boardHistory: this.rules.boardHistory,
+          lastMove: this.rules.lastMove,
+          koPoint: this.rules.koPoint,
+          aiLevel: this.aiLevel,
+          playerColor: this.playerColor,
+          aiColor: this.aiColor
+        }));
+      }
+      
+      hideDialogs() {
+        this.saveDialog.style.display = 'none';
+        this.gameOverDialog.style.display = 'none';
+      }
+      
+      updateUI() {
+        const curr = this.rules.currentPlayer;
+        document.getElementById('blackIndicator').classList.toggle('active', curr === BLACK);
+        document.getElementById('whiteIndicator').classList.toggle('active', curr === WHITE);
+        document.getElementById('turnInfo').textContent = curr === BLACK ? '黑方落子' : '白方落子';
+        document.getElementById('whiteCaptured').textContent = this.rules.capturedWhite;
+        document.getElementById('blackCaptured').textContent = this.rules.capturedBlack;
+        this.render();
+      }
+      
+      render() {
+        this.board.render(
+          this.rules.board,
+          this.rules.lastMove,
+          this.previewPos,
+          this.rules.currentPlayer
+        );
+      }
+      
+      showToast(msg) {
+        this.toast.textContent = msg;
+        this.toast.classList.add('show');
+        setTimeout(() => this.toast.classList.remove('show'), 2000);
+      }
+    }
+    
+    // 启动游戏
+    window.onload = () => new WeiqiGame();
+  </script>
+</body>
+</html>
